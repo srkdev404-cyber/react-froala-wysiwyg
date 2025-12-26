@@ -1,5 +1,5 @@
 {
-  "name": "@srkdev404-cyber/react-froala-wysiwyg-child-H",
+  "name": "@froala/react-froala-wysiwyg",
   "version": "4.7.1",
   "description": "React component for Froala WYSIWYG HTML rich text editor.",
   "main": "index.js",
@@ -70,11 +70,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/srkdev404-cyber/react-froala-wysiwyg-child-H.git"
+    "url": "git+https://github.com/froala/react-froala-wysiwyg.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/srkdev404-cyber/react-froala-wysiwyg-child-H.git"
+    "url": "https://github.com/froala/react-froala-wysiwyg/issues"
   },
-  "homepage": "https://github.com/srkdev404-cyber/react-froala-wysiwyg-child-H.git"
+  "homepage": "https://github.com/froala/react-froala-wysiwyg#readme"
 }
