@@ -28,13 +28,17 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: '@froala'
 
-      # c. npm publish (GitHub Packages, PAT only)
+      # Ensure dependencies exist (safe even if already installed)
+      - name: Install dependencies
+        run: npm install
+
+      # c. Publish to GitHub Packages (PAT only)
       - name: Publish to GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PAT }}
         run: npm publish
 
-      # d. GitHub Release
+      # d. Read version for release
       - name: Read version
         run: |
           VERSION=$(node -p "require('./package.json').version")
