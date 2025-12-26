@@ -19,24 +19,38 @@ jobs:
           token: ${{ secrets.PAT }}
           fetch-depth: 0
 
+      - name: Validate version payload
+        run: |
+          if [ -z "${{ github.event.client_payload.version }}" ]; then
+            echo "❌ Version not provided in payload"
+            exit 1
+          fi
+
       - name: Read version from payload
         run: |
           echo "VERSION=${{ github.event.client_payload.version }}" >> $GITHUB_ENV
 
       # a. Update package.json version
-      - name: Update version
+      - name: Update package.json version
         run: |
-          npm version $VERSION --no-git-tag-version
+          npm version "$VERSION" --no-git-tag-version
 
-      # b. npm install (first time)
+      # b. npm install (first time / lockfile update allowed)
       - name: Install dependencies
         run: npm install
 
       # Commit changes
-      - name: Commit version update
+      - name: Commit and push changes
         run: |
           git config user.name "srkdev404-cyber"
           git config user.email "srkdev40@gmail.com"
+
           git add package.json package-lock.json
+
+          if git diff --cached --quiet; then
+            echo "ℹ️ No changes to commit"
+            exit 0
+          fi
+
           git commit -m "chore: bump version to $VERSION"
           git push origin master
