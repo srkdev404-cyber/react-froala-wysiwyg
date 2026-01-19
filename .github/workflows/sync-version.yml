@@ -1,4 +1,4 @@
-name: Sync Version
+name: Sync Version – react-froala
 
 on:
   repository_dispatch:
@@ -6,51 +6,100 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    environment: PAT
 
     steps:
+      # --------------------------------------------
+      # Checkout repository
+      # --------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT }}
           fetch-depth: 0
 
-      - name: Validate version payload
+      # --------------------------------------------
+      # Load & validate version
+      # --------------------------------------------
+      - name: Load & validate version
         run: |
-          if [ -z "${{ github.event.client_payload.version }}" ]; then
-            echo "❌ Version not provided in payload"
+          VERSION="${{ github.event.client_payload.version }}"
+          VERSION="${VERSION//,/\.}"
+
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version format: $VERSION"
             exit 1
           fi
 
-      - name: Read version from payload
-        run: |
-          echo "VERSION=${{ github.event.client_payload.version }}" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Dispatching version $VERSION"
 
-      # a. Update package.json version
+      # --------------------------------------------
+      # Prepare release branch
+      # --------------------------------------------
+      - name: Prepare release branch
+        run: |
+          BRANCH="release-v${VERSION}"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+          git fetch origin
+          if git ls-remote --heads origin "$BRANCH" | grep -q "$BRANCH"; then
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+          else
+            git checkout -b "$BRANCH"
+          fi
+
+      # --------------------------------------------
+      # Setup Node.js
+      # --------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # --------------------------------------------
+      # Update package.json version
+      # --------------------------------------------
       - name: Update package.json version
         run: |
           npm version "$VERSION" --no-git-tag-version
 
-      # b. npm install (first time / lockfile update allowed)
+      # --------------------------------------------
+      # Install dependencies (lockfile update allowed)
+      # --------------------------------------------
       - name: Install dependencies
         run: npm install
 
-      # Commit changes
-      - name: Commit and push changes
+      # --------------------------------------------
+      # Commit & push
+      # --------------------------------------------
+      - name: Commit & push
         run: |
           git config user.name "srkdev404-cyber"
           git config user.email "srkdev40@gmail.com"
 
           git add package.json package-lock.json
+          git commit -m "chore: release react-froala v${VERSION}" || echo "Nothing to commit"
+          git push origin "$BRANCH"
 
-          if git diff --cached --quiet; then
-            echo "ℹ️ No changes to commit"
-            exit 0
-          fi
+      # --------------------------------------------
+      # Create Pull Request (YAML-SAFE)
+      # --------------------------------------------
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+          RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
+        run: |
+          PR_BODY=$(printf "release: yes\n\n## Release Notes (from primary repo)\n\n%s\n" "$RELEASE_NOTES")
 
-          git commit -m "chore: bump version to $VERSION"
-          git push origin master
+          gh pr create \
+            --base master \
+            --head "$BRANCH" \
+            --title "Release v${VERSION}" \
+            --body "$PR_BODY" \
+            || echo "Pull request already exists"
