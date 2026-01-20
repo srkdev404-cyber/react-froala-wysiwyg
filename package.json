@@ -1,6 +1,6 @@
 {
   "name": "@froala/react-froala-wysiwyg",
-  "version": "5.0.3",
+  "version": "5.0.0-alpha",
   "description": "React component for Froala WYSIWYG HTML rich text editor.",
   "main": "index.js",
   "types": "./lib/index.d.ts",
